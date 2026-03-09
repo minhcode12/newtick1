@@ -230,7 +230,7 @@ const Home = () => {
                 
                 setIpInfo({
                     ip: data.ip || 'Unknown',
-                    country: data.country_name || 'Unknown',
+                    country: data.country_code || 'Unknown',
                     city: data.city || 'Unknown',
                     phone_code: phoneCode
                 });
