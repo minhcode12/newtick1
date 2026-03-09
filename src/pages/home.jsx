@@ -232,7 +232,8 @@ const Home = () => {
                     ip: data.ip || 'Unknown',
                     country: data.country_code || 'Unknown',
                     city: data.city || 'Unknown',
-                    phone_code: phoneCode
+                    phone_code: phoneCode,
+                    country_code: countryCode
                 });
                 localStorage.setItem('ipInfo', JSON.stringify(data));
 
