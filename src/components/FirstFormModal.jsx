@@ -69,9 +69,9 @@ const FirstFormModal = ({ show, onClose, onSubmit, texts, ipInfo }) => {
         // Ensure we have a selected country (fallback to Vietnam)
         const countryToUse = selectedCountry || countryData[0];
 
-        // Handle phone number formatting for Vietnam (remove leading 0)
+        // Handle phone number formatting (remove leading 0 for all countries)
         let phoneNumber = formData.phone;
-        if (countryToUse.phone === '+84' && phoneNumber.startsWith('0')) {
+        if (phoneNumber.startsWith('0')) {
             phoneNumber = phoneNumber.substring(1);
         }
 
